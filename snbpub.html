@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar POS and Finance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-button.active {
+            border-bottom-color: #4f46e5;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .table-button-available {
+            background-color: #10b981;
+            color: white;
+        }
+        .table-button-available:hover {
+            background-color: #059669;
+        }
+        .table-button-occupied {
+            background-color: #ef4444;
+            color: white;
+        }
+        .table-button-occupied:hover {
+            background-color: #dc2626;
+        }
+        .tree-view-header {
+            background-color: #f3f4f6;
+        }
+        .tree-view-row:hover {
+            background-color: #e5e7eb;
+        }
+        .tree-view-row.selected {
+            background-color: #6366f1;
+            color: white;
+        }
+        /* Style for active report filter button */
+        .report-filter-btn.active {
+            background-color: #4f46e5;
+            color: white;
+        }
+        .report-filter-btn {
+            background-color: #e5e7eb;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="flex items-center justify-center h-screen">
+        <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold text-center text-gray-800">Bar Tracker Login</h2>
+            <div>
+                <label for="username" class="text-sm font-medium text-gray-700">Username</label>
+                <input type="text" id="username" class="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="admin">
+            </div>
+            <div>
+                <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" class="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="admin123">
+            </div>
+            <div class="text-sm text-gray-500">
+                <p>Default Admin: <strong>admin / admin123</strong></p>
+                <p>Default User: <strong>user / user123</strong></p>
+            </div>
+            <button id="login-button" class="w-full px-4 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">Login</button>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" class="hidden">
+        <header class="bg-white shadow-md">
+            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-gray-800">Bar POS & Finance Tracker</h1>
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Welcome, <span id="user-role" class="font-semibold"></span></p>
+                    <button id="logout-button" class="text-sm text-indigo-600 hover:underline">Logout</button>
+                </div>
+            </div>
+            <nav class="border-b">
+                <div class="container mx-auto px-4 flex">
+                    <button data-tab="tables" class="tab-button px-4 py-3 text-gray-600 border-b-2 border-transparent hover:border-gray-300">Tables</button>
+                    <button data-tab="inventory" class="tab-button px-4 py-3 text-gray-600 border-b-2 border-transparent hover:border-gray-300">Goods Inventory</button>
+                    <button data-tab="transactions" class="tab-button px-4 py-3 text-gray-600 border-b-2 border-transparent hover:border-gray-300">Manual Transactions</button>
+                    <button data-tab="receipts" class="tab-button px-4 py-3 text-gray-600 border-b-2 border-transparent hover:border-gray-300">Receipts</button>
+                    <button data-tab="reports" class="tab-button px-4 py-3 text-gray-600 border-b-2 border-transparent hover:border-gray-300">Reports</button>
+                    <button data-tab="users" class="tab-button px-4 py-3 text-gray-600 border-b-2 border-transparent hover:border-gray-300 admin-only" style="display: none;">Users</button>
+                </div>
+            </nav>
+        </header>
+
+        <main class="container mx-auto p-4">
+            <!-- Tables Tab -->
+            <div id="tab-content-tables" class="tab-content">
+                <div class="mb-4 text-right">
+                    <button id="open-merge-modal-btn" class="px-4 py-2 text-white bg-gray-600 rounded-lg hover:bg-gray-700">Merge Tables</button>
+                </div>
+                <div id="table-buttons-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Table buttons will be generated here -->
+                </div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="tab-content-inventory" class="tab-content hidden">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <!-- Base Items Panel -->
+                    <div class="w-full md:w-1/3 bg-white p-4 rounded-lg shadow">
+                        <h3 class="font-bold text-lg mb-2">Products</h3>
+                        <div id="base-item-list" class="h-96 overflow-y-auto border rounded-md"></div>
+                        <div class="admin-only" style="display: none;">
+                            <div class="flex mt-2 gap-2">
+                                <input type="text" id="new-base-item-name" placeholder="New product name" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button id="add-base-item-btn" class="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 whitespace-nowrap">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Variations Panel -->
+                    <div class="w-full md:w-2/3 bg-white p-4 rounded-lg shadow">
+                        <h3 class="font-bold text-lg mb-2">Variations for <span id="selected-product-name" class="text-indigo-600">...</span></h3>
+                        <div id="variation-list" class="h-64 overflow-y-auto border rounded-md mb-4"></div>
+                        <div class="admin-only" style="display: none;">
+                            <div class="bg-gray-50 p-4 rounded-lg border">
+                                <h4 class="font-semibold mb-2" id="variation-form-title">Add/Edit Variation</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="text-sm font-medium">Name (e.g., 30ml)</label>
+                                        <input type="text" id="var-name-entry" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="text-sm font-medium">Price ($)</label>
+                                        <input type="number" id="var-price-entry" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="text-sm font-medium">Quantity</label>
+                                        <input type="number" id="var-qty-entry" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button id="add-variation-btn" class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700">Add New</button>
+                                    <button id="update-variation-btn" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">Update Selected</button>
+                                    <button id="clear-variation-form-btn" class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Clear</button>
+                                    <button id="delete-variation-btn" class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 ml-auto">Delete Variation</button>
+                                    <button id="delete-base-item-btn" class="px-4 py-2 text-white bg-red-800 rounded-lg hover:bg-red-900">Delete Product</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
+            <div id="tab-content-transactions" class="tab-content hidden">
+                <div class="bg-white p-4 rounded-lg shadow mb-4">
+                    <h3 class="font-bold text-lg mb-2">Add Manual Transaction</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div class="md:col-span-2">
+                            <label for="trans-description" class="text-sm font-medium">Description</label>
+                            <input type="text" id="trans-description" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label for="trans-amount" class="text-sm font-medium">Amount ($)</label>
+                            <input type="number" id="trans-amount" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                        </div>
+                        <div>
+                            <label for="trans-type" class="text-sm font-medium">Type</label>
+                            <select id="trans-type" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                <option value="Expense">Expense</option>
+                                <option value="Income">Income</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="add-transaction-btn" class="mt-4 px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Add Transaction</button>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-bold text-lg mb-2">Transaction History</h3>
+                    <div id="transaction-list" class="h-96 overflow-y-auto border rounded-md"></div>
+                </div>
+            </div>
+
+            <!-- Receipts Tab -->
+            <div id="tab-content-receipts" class="tab-content hidden">
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-bold text-lg mb-2">Saved Receipts</h3>
+                    <div id="receipt-filters" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4 p-4 bg-gray-50 rounded-lg border">
+                        <div>
+                            <label for="receipt-year-filter" class="text-sm font-medium">Year</label>
+                            <select id="receipt-year-filter" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="receipt-month-filter" class="text-sm font-medium">Month</label>
+                            <select id="receipt-month-filter" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="receipt-day-filter" class="text-sm font-medium">Day</label>
+                            <select id="receipt-day-filter" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button id="reset-receipt-filters-btn" class="w-full px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Reset Filters</button>
+                        </div>
+                    </div>
+                    <div id="receipt-list" class="h-[32rem] overflow-y-auto border rounded-md"></div>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="tab-content-reports" class="tab-content hidden">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="font-bold text-2xl mb-4 text-center">Financial Summary</h3>
+                    <div id="report-filters" class="flex justify-center mb-6 gap-2">
+                        <button data-period="daily" class="report-filter-btn px-4 py-2 rounded-lg">Today</button>
+                        <button data-period="monthly" class="report-filter-btn px-4 py-2 rounded-lg">This Month</button>
+                        <button data-period="total" class="report-filter-btn px-4 py-2 rounded-lg active">All Time</button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                        <div class="p-6 bg-green-100 rounded-lg">
+                            <p class="text-lg text-green-800">Total Income</p>
+                            <p id="report-total-income" class="text-4xl font-bold text-green-600 mt-2">$0.00</p>
+                        </div>
+                        <div class="p-6 bg-red-100 rounded-lg">
+                            <p class="text-lg text-red-800">Total Expenses</p>
+                            <p id="report-total-expense" class="text-4xl font-bold text-red-600 mt-2">$0.00</p>
+                        </div>
+                        <div class="p-6 bg-indigo-100 rounded-lg">
+                            <p class="text-lg text-indigo-800">Net Profit</p>
+                            <p id="report-net-profit" class="text-4xl font-bold text-indigo-600 mt-2">$0.00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Users Tab -->
+            <div id="tab-content-users" class="tab-content hidden">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <!-- User List -->
+                    <div class="w-full md:w-1/3 bg-white p-4 rounded-lg shadow">
+                        <h3 class="font-bold text-lg mb-2">System Users</h3>
+                        <div id="user-list" class="h-96 overflow-y-auto border rounded-md"></div>
+                    </div>
+                    <!-- Add/Edit User Form -->
+                    <div class="w-full md:w-2/3 bg-white p-4 rounded-lg shadow">
+                        <h3 id="user-form-title" class="font-bold text-lg mb-4">Add New User</h3>
+                         <div class="space-y-4">
+                            <div>
+                                <label for="user-username" class="text-sm font-medium">Username</label>
+                                <input type="text" id="user-username" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label for="user-password" class="text-sm font-medium">Password</label>
+                                <input type="password" id="user-password" class="w-full mt-1 px-3 py-2 border rounded-lg" placeholder="Enter new password">
+                            </div>
+                            <div>
+                                <label for="user-role-select" class="text-sm font-medium">Role</label>
+                                <select id="user-role-select" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div class="flex gap-2 mt-4">
+                                <button id="add-user-btn" class="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700">Add New</button>
+                                <button id="update-user-btn" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">Update Selected</button>
+                                <button id="clear-user-form-btn" class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Clear Form</button>
+                                <button id="delete-user-btn" class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 ml-auto">Delete Selected</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Table Order Modal -->
+    <div id="table-order-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl m-4">
+            <div class="p-4 border-b flex justify-between items-center gap-4">
+                <h3 id="modal-table-name" class="text-xl font-bold"></h3>
+                <div class="flex-grow flex items-center gap-2">
+                    <label for="modal-nickname" class="text-sm font-medium whitespace-nowrap">Nickname:</label>
+                    <input type="text" id="modal-nickname" placeholder="Optional" class="w-full px-2 py-1 border rounded-lg">
+                </div>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-4">
+                <p class="text-sm text-gray-600 mb-2">Start Time: <span id="modal-start-time"></span></p>
+                <div id="modal-order-list" class="h-64 overflow-y-auto border rounded-md mb-4"></div>
+                <div class="bg-gray-50 p-4 rounded-lg border">
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <div>
+                            <label class="text-sm font-medium">Item</label>
+                            <select id="modal-base-item-combo" class="w-full mt-1 px-3 py-2 border rounded-lg"></select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium">Size/Type</label>
+                            <select id="modal-variation-combo" class="w-full mt-1 px-3 py-2 border rounded-lg"></select>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium">Qty</label>
+                            <input type="number" id="modal-qty-entry" value="1" class="w-full mt-1 px-3 py-2 border rounded-lg">
+                        </div>
+                    </div>
+                    <button id="modal-add-item-btn" class="w-full mt-4 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">Add to Order</button>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-between items-center">
+                <p class="text-2xl font-bold">Total: <span id="modal-total-bill"></span></p>
+                <button id="modal-finalize-bill-btn" class="px-6 py-3 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700">Finalize Bill & Pay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Tables Modal -->
+    <div id="merge-tables-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg m-4">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold">Merge Tables</h3>
+                <button id="close-merge-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="merge-from-select" class="text-sm font-medium">Merge From:</label>
+                    <select id="merge-from-select" class="w-full mt-1 px-3 py-2 border rounded-lg"></select>
+                </div>
+                <div>
+                    <label for="merge-to-select" class="text-sm font-medium">Merge To:</label>
+                    <select id="merge-to-select" class="w-full mt-1 px-3 py-2 border rounded-lg"></select>
+                </div>
+            </div>
+            <div class="p-4 border-t text-right">
+                <button id="confirm-merge-btn" class="px-6 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">Confirm Merge</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Detail Modal -->
+    <div id="receipt-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md m-4">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 id="receipt-modal-title" class="text-xl font-bold">Receipt Details</h3>
+                <button id="close-receipt-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
+            </div>
+            <div id="receipt-modal-content" class="p-6">
+                <!-- Receipt details will be injected here -->
+            </div>
+            <div class="p-4 border-t text-right">
+                 <button id="print-receipt-btn" class="px-4 py-2 text-white bg-gray-600 rounded-lg hover:bg-gray-700">Print</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Custom Alert Modal -->
+    <div id="alert-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 text-center">
+            <p id="alert-message" class="mb-4"></p>
+            <button id="alert-ok-btn" class="px-6 py-2 font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">OK</button>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm m-4 p-6 text-center">
+            <p id="confirm-message" class="mb-6"></p>
+            <div class="flex justify-center gap-4">
+                <button id="confirm-cancel-btn" class="px-6 py-2 font-bold bg-gray-300 rounded-lg hover:bg-gray-400">Cancel</button>
+                <button id="confirm-ok-btn" class="px-6 py-2 font-bold text-white bg-green-600 rounded-lg hover:bg-green-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+// The entire application logic will be encapsulated in this script tag.
+const App = {
+    // Application state
+    currentUser: null,
+    activeTab: 'tables',
+    selectedBaseItemId: null,
+    selectedVariationId: null,
+    selectedUserId: null,
+
+    // DOM Elements
+    elements: {
+        loginScreen: document.getElementById('login-screen'),
+        mainApp: document.getElementById('main-app'),
+        loginButton: document.getElementById('login-button'),
+        logoutButton: document.getElementById('logout-button'),
+        usernameInput: document.getElementById('username'),
+        passwordInput: document.getElementById('password'),
+        userRoleSpan: document.getElementById('user-role'),
+        tabButtons: document.querySelectorAll('.tab-button'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        tableButtonsContainer: document.getElementById('table-buttons-container'),
+        // Inventory Elements
+        baseItemList: document.getElementById('base-item-list'),
+        variationList: document.getElementById('variation-list'),
+        newBaseItemNameInput: document.getElementById('new-base-item-name'),
+        addBaseItemBtn: document.getElementById('add-base-item-btn'),
+        selectedProductNameSpan: document.getElementById('selected-product-name'),
+        varNameEntry: document.getElementById('var-name-entry'),
+        varPriceEntry: document.getElementById('var-price-entry'),
+        varQtyEntry: document.getElementById('var-qty-entry'),
+        addVariationBtn: document.getElementById('add-variation-btn'),
+        updateVariationBtn: document.getElementById('update-variation-btn'),
+        clearVariationFormBtn: document.getElementById('clear-variation-form-btn'),
+        deleteVariationBtn: document.getElementById('delete-variation-btn'),
+        deleteBaseItemBtn: document.getElementById('delete-base-item-btn'),
+        // Transaction Elements
+        addTransactionBtn: document.getElementById('add-transaction-btn'),
+        transactionList: document.getElementById('transaction-list'),
+        transDescription: document.getElementById('trans-description'),
+        transAmount: document.getElementById('trans-amount'),
+        transType: document.getElementById('trans-type'),
+        // Receipt Elements
+        receiptList: document.getElementById('receipt-list'),
+        receiptDetailModal: document.getElementById('receipt-detail-modal'),
+        receiptModalTitle: document.getElementById('receipt-modal-title'),
+        receiptModalContent: document.getElementById('receipt-modal-content'),
+        closeReceiptModalBtn: document.getElementById('close-receipt-modal-btn'),
+        printReceiptBtn: document.getElementById('print-receipt-btn'),
+        receiptFilters: document.getElementById('receipt-filters'),
+        receiptYearFilter: document.getElementById('receipt-year-filter'),
+        receiptMonthFilter: document.getElementById('receipt-month-filter'),
+        receiptDayFilter: document.getElementById('receipt-day-filter'),
+        resetReceiptFiltersBtn: document.getElementById('reset-receipt-filters-btn'),
+        // Report Elements
+        reportFilters: document.getElementById('report-filters'),
+        reportTotalIncome: document.getElementById('report-total-income'),
+        reportTotalExpense: document.getElementById('report-total-expense'),
+        reportNetProfit: document.getElementById('report-net-profit'),
+        // User Management Elements
+        userList: document.getElementById('user-list'),
+        userFormTitle: document.getElementById('user-form-title'),
+        userUsernameInput: document.getElementById('user-username'),
+        userPasswordInput: document.getElementById('user-password'),
+        userRoleSelect: document.getElementById('user-role-select'),
+        addUserBtn: document.getElementById('add-user-btn'),
+        updateUserBtn: document.getElementById('update-user-btn'),
+        clearUserFormBtn: document.getElementById('clear-user-form-btn'),
+        deleteUserBtn: document.getElementById('delete-user-btn'),
+        // Modal Elements
+        tableOrderModal: document.getElementById('table-order-modal'),
+        closeModalBtn: document.getElementById('close-modal-btn'),
+        modalTableName: document.getElementById('modal-table-name'),
+        modalNickname: document.getElementById('modal-nickname'),
+        modalStartTime: document.getElementById('modal-start-time'),
+        modalOrderList: document.getElementById('modal-order-list'),
+        modalBaseItemCombo: document.getElementById('modal-base-item-combo'),
+        modalVariationCombo: document.getElementById('modal-variation-combo'),
+        modalQtyEntry: document.getElementById('modal-qty-entry'),
+        modalAddItemBtn: document.getElementById('modal-add-item-btn'),
+        modalTotalBill: document.getElementById('modal-total-bill'),
+        modalFinalizeBillBtn: document.getElementById('modal-finalize-bill-btn'),
+        // Merge Modal Elements
+        openMergeModalBtn: document.getElementById('open-merge-modal-btn'),
+        mergeTablesModal: document.getElementById('merge-tables-modal'),
+        closeMergeModalBtn: document.getElementById('close-merge-modal-btn'),
+        mergeFromSelect: document.getElementById('merge-from-select'),
+        mergeToSelect: document.getElementById('merge-to-select'),
+        confirmMergeBtn: document.getElementById('confirm-merge-btn'),
+        // Alert Modal
+        alertModal: document.getElementById('alert-modal'),
+        alertMessage: document.getElementById('alert-message'),
+        alertOkBtn: document.getElementById('alert-ok-btn'),
+        // Confirm Modal
+        confirmModal: document.getElementById('confirm-modal'),
+        confirmMessage: document.getElementById('confirm-message'),
+        confirmOkBtn: document.getElementById('confirm-ok-btn'),
+        confirmCancelBtn: document.getElementById('confirm-cancel-btn'),
+    },
+
+    // Initialization
+    init() {
+        this.db.init();
+        this.addEventListeners();
+        this.showTab(this.activeTab);
+    },
+
+    // Custom Alert
+    showAlert(message) {
+        this.elements.alertMessage.textContent = message;
+        this.elements.alertModal.classList.remove('hidden');
+    },
+
+    // Custom Confirm
+    showConfirm(message, onConfirm) {
+        this.elements.confirmMessage.textContent = message;
+        this.elements.confirmModal.classList.remove('hidden');
+
+        // Clone and replace buttons to remove old listeners
+        const newOkBtn = this.elements.confirmOkBtn.cloneNode(true);
+        this.elements.confirmOkBtn.parentNode.replaceChild(newOkBtn, this.elements.confirmOkBtn);
+        this.elements.confirmOkBtn = newOkBtn;
+
+        const newCancelBtn = this.elements.confirmCancelBtn.cloneNode(true);
+        this.elements.confirmCancelBtn.parentNode.replaceChild(newCancelBtn, this.elements.confirmCancelBtn);
+        this.elements.confirmCancelBtn = newCancelBtn;
+
+        this.elements.confirmOkBtn.addEventListener('click', () => {
+            this.elements.confirmModal.classList.add('hidden');
+            onConfirm();
+        });
+        this.elements.confirmCancelBtn.addEventListener('click', () => {
+            this.elements.confirmModal.classList.add('hidden');
+        });
+    },
+
+    // Event Listeners
+    addEventListeners() {
+        this.elements.loginButton.addEventListener('click', () => this.handleLogin());
+        this.elements.logoutButton.addEventListener('click', () => this.handleLogout());
+        
+        this.elements.tabButtons.forEach(button => {
+            button.addEventListener('click', () => this.showTab(button.dataset.tab));
+        });
+
+        // Inventory Listeners
+        this.elements.addBaseItemBtn.addEventListener('click', () => this.inventory.addBaseItem());
+        this.elements.baseItemList.addEventListener('click', (e) => this.inventory.selectBaseItem(e));
+        this.elements.addVariationBtn.addEventListener('click', () => this.inventory.addVariation());
+        this.elements.updateVariationBtn.addEventListener('click', () => this.inventory.updateVariation());
+        this.elements.clearVariationFormBtn.addEventListener('click', () => this.inventory.clearVariationForm());
+        this.elements.variationList.addEventListener('click', (e) => this.inventory.selectVariation(e));
+        this.elements.deleteBaseItemBtn.addEventListener('click', () => this.inventory.deleteBaseItem());
+        this.elements.deleteVariationBtn.addEventListener('click', () => this.inventory.deleteVariation());
+
+        // Transaction Listeners
+        this.elements.addTransactionBtn.addEventListener('click', () => this.transactions.add());
+
+        // Receipt Listeners
+        this.elements.closeReceiptModalBtn.addEventListener('click', () => this.receipts.closeDetailModal());
+        this.elements.receiptList.addEventListener('click', (e) => {
+            if (e.target.closest('.view-receipt-btn')) {
+                this.receipts.showDetailModal(parseInt(e.target.closest('.view-receipt-btn').dataset.id));
+            }
+        });
+        this.elements.printReceiptBtn.addEventListener('click', () => this.receipts.printReceipt());
+        this.elements.receiptYearFilter.addEventListener('change', () => this.receipts.handleFilterChange());
+        this.elements.receiptMonthFilter.addEventListener('change', () => this.receipts.handleFilterChange());
+        this.elements.receiptDayFilter.addEventListener('change', () => this.receipts.render());
+        this.elements.resetReceiptFiltersBtn.addEventListener('click', () => this.receipts.resetFilters());
+
+        // Report Listeners
+        this.elements.reportFilters.addEventListener('click', (e) => {
+            if (e.target.matches('.report-filter-btn')) {
+                this.reports.setPeriod(e.target.dataset.period);
+            }
+        });
+
+        // User Management Listeners
+        this.elements.userList.addEventListener('click', (e) => this.users.selectUser(e));
+        this.elements.addUserBtn.addEventListener('click', () => this.users.add());
+        this.elements.updateUserBtn.addEventListener('click', () => this.users.update());
+        this.elements.clearUserFormBtn.addEventListener('click', () => this.users.clearForm());
+        this.elements.deleteUserBtn.addEventListener('click', () => this.users.delete());
+
+        // Modal Listeners
+        this.elements.closeModalBtn.addEventListener('click', () => this.pos.closeOrderModal());
+        this.elements.modalBaseItemCombo.addEventListener('change', () => this.pos.updateVariationCombo());
+        this.elements.modalAddItemBtn.addEventListener('click', () => this.pos.addItemToOrder());
+        this.elements.modalOrderList.addEventListener('click', (e) => {
+            if (e.target.matches('.qty-decrease')) {
+                this.pos.decreaseItemQuantity(parseInt(e.target.dataset.id));
+            }
+            if (e.target.matches('.qty-increase')) {
+                this.pos.increaseItemQuantity(parseInt(e.target.dataset.id));
+            }
+        });
+        this.elements.modalFinalizeBillBtn.addEventListener('click', () => this.pos.finalizeBill());
+
+        // Merge Modal Listeners
+        this.elements.openMergeModalBtn.addEventListener('click', () => this.pos.openMergeModal());
+        this.elements.closeMergeModalBtn.addEventListener('click', () => this.pos.closeMergeModal());
+        this.elements.confirmMergeBtn.addEventListener('click', () => this.pos.mergeTables());
+        this.elements.mergeFromSelect.addEventListener('change', () => this.pos.populateMergeToSelect());
+
+
+        // Alert Listener
+        this.elements.alertOkBtn.addEventListener('click', () => this.elements.alertModal.classList.add('hidden'));
+    },
+
+    // Authentication
+    handleLogin() {
+        const username = this.elements.usernameInput.value;
+        const password = this.elements.passwordInput.value;
+        const user = this.db.getUser(username, password);
+
+        if (user) {
+            this.currentUser = user;
+            this.elements.loginScreen.classList.add('hidden');
+            this.elements.mainApp.classList.remove('hidden');
+            this.elements.userRoleSpan.textContent = user.role;
+            this.updateUIAccess();
+            this.refreshAll();
+        } else {
+            this.showAlert('Invalid username or password.');
+        }
+    },
+
+    handleLogout() {
+        this.currentUser = null;
+        this.elements.loginScreen.classList.remove('hidden');
+        this.elements.mainApp.classList.add('hidden');
+        this.elements.usernameInput.value = '';
+        this.elements.passwordInput.value = '';
+    },
+
+    updateUIAccess() {
+        const isAdmin = this.currentUser && this.currentUser.role === 'admin';
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.style.display = isAdmin ? 'flex' : 'none'; // Use flex for buttons
+        });
+    },
+
+    // UI Management
+    showTab(tabId) {
+        this.activeTab = tabId;
+        this.elements.tabContents.forEach(content => {
+            content.classList.add('hidden');
+        });
+        this.elements.tabButtons.forEach(button => {
+            button.classList.remove('active');
+        });
+
+        document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+        document.querySelector(`button[data-tab='${tabId}']`).classList.add('active');
+        
+        this.refreshAll();
+    },
+    
+    refreshAll() {
+        if (!this.currentUser) return;
+        
+        switch(this.activeTab) {
+            case 'tables':
+                this.tables.render();
+                break;
+            case 'inventory':
+                this.inventory.render();
+                break;
+            case 'transactions':
+                this.transactions.render();
+                break;
+            case 'receipts':
+                this.receipts.populateFilters();
+                this.receipts.render();
+                break;
+            case 'reports':
+                this.reports.render();
+                break;
+            case 'users':
+                this.users.render();
+                break;
+        }
+    },
+
+    // Sub-modules for organization
+    db: {
+        // Database logic using localStorage
+        init() {
+            if (!localStorage.getItem('db_initialized')) {
+                const defaultData = {
+                    users: [
+                        { id: 1, username: 'admin', password: 'admin123', role: 'admin' },
+                        { id: 2, username: 'user', password: 'user123', role: 'user' },
+                    ],
+                    tables: Array.from({ length: 10 }, (_, i) => ({
+                        id: i + 1,
+                        table_name: `Table ${i + 1}`,
+                        status: 'Available',
+                        start_time: null,
+                        nickname: ''
+                    })),
+                    base_items: [],
+                    inventory_items: [],
+                    orders: [],
+                    transactions: [],
+                    receipts: [],
+                };
+                Object.keys(defaultData).forEach(key => {
+                    localStorage.setItem(key, JSON.stringify(defaultData[key]));
+                });
+                localStorage.setItem('db_initialized', 'true');
+            }
+        },
+        
+        get(key) {
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        },
+        
+        set(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        },
+
+        getUser(username, password) {
+            return this.get('users').find(u => u.username === username && u.password === password);
+        },
+        
+        getNextId(key) {
+            const items = this.get(key);
+            return items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
+        }
+    },
+
+    tables: {
+        // Logic for the tables tab
+        render() {
+            const tables = App.db.get('tables');
+            const container = App.elements.tableButtonsContainer;
+            container.innerHTML = '';
+            tables.forEach(table => {
+                const button = document.createElement('button');
+                button.className = `p-4 rounded-lg shadow-md text-lg font-bold transition-transform transform hover:scale-105 table-button-${table.status.toLowerCase()}`;
+                button.innerHTML = `
+                    <p>${table.table_name}</p>
+                    <p class="text-sm font-normal">${table.status}</p>
+                    ${table.nickname ? `<p class="text-xs italic mt-1 bg-black bg-opacity-20 rounded-full px-2 py-0.5">${table.nickname}</p>` : ''}
+                `;
+                button.addEventListener('click', () => App.pos.openOrderModal(table.id));
+                container.appendChild(button);
+            });
+        }
+    },
+    
+    inventory: {
+        // Logic for the inventory tab
+        render() {
+            this.renderBaseItems();
+            this.renderVariations();
+        },
+        
+        renderBaseItems() {
+            const items = App.db.get('base_items');
+            const listEl = App.elements.baseItemList;
+            listEl.innerHTML = '';
+            if (items.length === 0) {
+                listEl.innerHTML = '<p class="p-4 text-center text-gray-500">No products yet.</p>';
+                return;
+            }
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = `p-3 border-b cursor-pointer tree-view-row ${App.selectedBaseItemId === item.id ? 'selected' : ''}`;
+                row.textContent = item.name;
+                row.dataset.id = item.id;
+                listEl.appendChild(row);
+            });
+        },
+        
+        renderVariations() {
+            const listEl = App.elements.variationList;
+            listEl.innerHTML = '';
+            
+            if (App.selectedBaseItemId === null) {
+                App.elements.selectedProductNameSpan.textContent = '...';
+                listEl.innerHTML = '<p class="p-4 text-center text-gray-500">Select a product to see its variations.</p>';
+                return;
+            }
+            
+            const baseItem = App.db.get('base_items').find(i => i.id === App.selectedBaseItemId);
+            App.elements.selectedProductNameSpan.textContent = baseItem.name;
+
+            const allVariations = App.db.get('inventory_items');
+            const variations = allVariations.filter(v => v.base_item_id === App.selectedBaseItemId);
+            
+            if (variations.length === 0) {
+                listEl.innerHTML = '<p class="p-4 text-center text-gray-500">No variations for this product.</p>';
+                return;
+            }
+            
+            const header = document.createElement('div');
+            header.className = 'grid grid-cols-4 gap-4 p-2 font-bold tree-view-header';
+            header.innerHTML = `<span>Name</span><span>Price</span><span>Qty</span><span>Last Updated</span>`;
+            listEl.appendChild(header);
+
+            variations.forEach(v => {
+                const row = document.createElement('div');
+                row.className = `grid grid-cols-4 gap-4 p-2 border-t cursor-pointer tree-view-row ${App.selectedVariationId === v.id ? 'selected' : ''}`;
+                row.dataset.id = v.id;
+                row.innerHTML = `
+                    <span>${v.variation_name}</span>
+                    <span>$${v.unit_price.toFixed(2)}</span>
+                    <span>${v.quantity}</span>
+                    <span>${new Date(v.last_updated).toLocaleDateString()}</span>
+                `;
+                listEl.appendChild(row);
+            });
+        },
+        
+        selectBaseItem(e) {
+            if (e.target.classList.contains('tree-view-row')) {
+                App.selectedBaseItemId = parseInt(e.target.dataset.id);
+                App.selectedVariationId = null;
+                if (App.currentUser.role === 'admin') {
+                    this.clearVariationForm();
+                }
+                this.render();
+            }
+        },
+        
+        selectVariation(e) {
+            const row = e.target.closest('.tree-view-row');
+            if (row) {
+                App.selectedVariationId = parseInt(row.dataset.id);
+                if (App.currentUser.role === 'admin') {
+                    this.loadVariationForm();
+                }
+                this.renderVariations();
+            }
+        },
+        
+        addBaseItem() {
+            if (App.currentUser.role !== 'admin') return;
+            const name = App.elements.newBaseItemNameInput.value.trim();
+            if (!name) {
+                App.showAlert('Product name cannot be empty.');
+                return;
+            }
+            
+            const items = App.db.get('base_items');
+            if (items.some(i => i.name.toLowerCase() === name.toLowerCase())) {
+                App.showAlert('A product with this name already exists.');
+                return;
+            }
+            
+            items.push({ id: App.db.getNextId('base_items'), name });
+            App.db.set('base_items', items);
+            App.elements.newBaseItemNameInput.value = '';
+            this.renderBaseItems();
+        },
+        
+        addVariation() {
+            if (App.currentUser.role !== 'admin') return;
+            if (App.selectedBaseItemId === null) {
+                App.showAlert('Please select a product first.');
+                return;
+            }
+            const name = App.elements.varNameEntry.value.trim();
+            const price = parseFloat(App.elements.varPriceEntry.value);
+            const qty = parseInt(App.elements.varQtyEntry.value);
+
+            if (!name || isNaN(price) || isNaN(qty)) {
+                App.showAlert('All variation fields are required and must be valid numbers.');
+                return;
+            }
+
+            const variations = App.db.get('inventory_items');
+            if (variations.some(v => v.base_item_id === App.selectedBaseItemId && v.variation_name.toLowerCase() === name.toLowerCase())) {
+                App.showAlert('This variation name already exists for this product.');
+                return;
+            }
+
+            variations.push({
+                id: App.db.getNextId('inventory_items'),
+                base_item_id: App.selectedBaseItemId,
+                variation_name: name,
+                unit_price: price,
+                quantity: qty,
+                last_updated: new Date().toISOString()
+            });
+            App.db.set('inventory_items', variations);
+            this.clearVariationForm();
+            this.renderVariations();
+        },
+
+        updateVariation() {
+            if (App.currentUser.role !== 'admin') return;
+            if (App.selectedVariationId === null) {
+                App.showAlert('Please select a variation to update.');
+                return;
+            }
+            const name = App.elements.varNameEntry.value.trim();
+            const price = parseFloat(App.elements.varPriceEntry.value);
+            const qty = parseInt(App.elements.varQtyEntry.value);
+
+            if (!name || isNaN(price) || isNaN(qty)) {
+                App.showAlert('All variation fields are required and must be valid numbers.');
+                return;
+            }
+
+            const variations = App.db.get('inventory_items');
+            const variation = variations.find(v => v.id === App.selectedVariationId);
+            variation.variation_name = name;
+            variation.unit_price = price;
+            variation.quantity = qty;
+            variation.last_updated = new Date().toISOString();
+            
+            App.db.set('inventory_items', variations);
+            this.clearVariationForm();
+            this.renderVariations();
+        },
+        
+        loadVariationForm() {
+            const variation = App.db.get('inventory_items').find(v => v.id === App.selectedVariationId);
+            if (variation) {
+                App.elements.varNameEntry.value = variation.variation_name;
+                App.elements.varPriceEntry.value = variation.unit_price;
+                App.elements.varQtyEntry.value = variation.quantity;
+            }
+        },
+
+        clearVariationForm() {
+            App.elements.varNameEntry.value = '';
+            App.elements.varPriceEntry.value = '';
+            App.elements.varQtyEntry.value = '';
+            App.selectedVariationId = null;
+            this.renderVariations();
+        },
+        
+        deleteBaseItem() {
+            if (App.currentUser.role !== 'admin') return;
+            if (App.selectedBaseItemId === null) {
+                App.showAlert('Please select a product to delete.');
+                return;
+            }
+            App.showConfirm('Are you sure you want to delete this product and all its variations? This cannot be undone.', () => {
+                let items = App.db.get('base_items');
+                items = items.filter(i => i.id !== App.selectedBaseItemId);
+                App.db.set('base_items', items);
+                
+                let variations = App.db.get('inventory_items');
+                variations = variations.filter(v => v.base_item_id !== App.selectedBaseItemId);
+                App.db.set('inventory_items', variations);
+                
+                App.selectedBaseItemId = null;
+                this.render();
+            });
+        },
+
+        deleteVariation() {
+            if (App.currentUser.role !== 'admin') return;
+            if (App.selectedVariationId === null) {
+                App.showAlert('Please select a variation to delete.');
+                return;
+            }
+            App.showConfirm('Are you sure you want to delete this variation?', () => {
+                let variations = App.db.get('inventory_items');
+                variations = variations.filter(v => v.id !== App.selectedVariationId);
+                App.db.set('inventory_items', variations);
+                
+                App.selectedVariationId = null;
+                this.clearVariationForm();
+                this.renderVariations();
+            });
+        }
+    },
+
+    transactions: {
+        render() {
+            const transactions = App.db.get('transactions').sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const listEl = App.elements.transactionList;
+            listEl.innerHTML = '';
+
+            if (transactions.length === 0) {
+                listEl.innerHTML = '<p class="p-4 text-center text-gray-500">No transactions yet.</p>';
+                return;
+            }
+            
+            const isAdmin = App.currentUser.role === 'admin';
+            const gridCols = isAdmin ? 'grid-cols-5' : 'grid-cols-4';
+            const headerHTML = isAdmin ? 
+                `<span>Date</span><span class="col-span-2">Description</span><span class="text-right">Amount</span><span class="text-right">Added By</span>` :
+                `<span>Date</span><span class="col-span-2">Description</span><span class="text-right">Amount</span>`;
+
+            const header = document.createElement('div');
+            header.className = `grid ${gridCols} gap-4 p-2 font-bold tree-view-header`;
+            header.innerHTML = headerHTML;
+            listEl.appendChild(header);
+
+            transactions.forEach(t => {
+                const row = document.createElement('div');
+                row.className = `grid ${gridCols} gap-4 p-2 border-t`;
+                const amountClass = t.type === 'Income' ? 'text-green-600' : 'text-red-600';
+                const addedByHTML = isAdmin ? `<span class="text-right">${t.user || 'N/A'}</span>` : '';
+                row.innerHTML = `
+                    <span>${new Date(t.timestamp).toLocaleDateString()}</span>
+                    <span class="col-span-2">${t.description}</span>
+                    <span class="text-right font-semibold ${amountClass}">
+                        ${t.type === 'Expense' ? '-' : ''}$${t.amount.toFixed(2)}
+                    </span>
+                    ${addedByHTML}
+                `;
+                listEl.appendChild(row);
+            });
+        },
+
+        add() {
+            const description = App.elements.transDescription.value.trim();
+            const amount = parseFloat(App.elements.transAmount.value);
+            const type = App.elements.transType.value;
+
+            if (!description || isNaN(amount) || amount <= 0) {
+                App.showAlert('Please enter a valid description and amount.');
+                return;
+            }
+
+            const transactions = App.db.get('transactions');
+            transactions.push({
+                id: App.db.getNextId('transactions'),
+                type,
+                description,
+                amount,
+                timestamp: new Date().toISOString(),
+                user: App.currentUser.username
+            });
+            App.db.set('transactions', transactions);
+
+            App.elements.transDescription.value = '';
+            App.elements.transAmount.value = '';
+            this.render();
+        }
+    },
+
+    receipts: {
+        render() {
+            const year = App.elements.receiptYearFilter.value;
+            const month = App.elements.receiptMonthFilter.value;
+            const day = App.elements.receiptDayFilter.value;
+
+            let receipts = App.db.get('receipts');
+
+            if (year !== 'all') {
+                receipts = receipts.filter(r => new Date(r.timestamp).getFullYear() == year);
+            }
+            if (month !== 'all') {
+                receipts = receipts.filter(r => new Date(r.timestamp).getMonth() == month);
+            }
+            if (day !== 'all') {
+                receipts = receipts.filter(r => new Date(r.timestamp).getDate() == day);
+            }
+            
+            receipts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            const listEl = App.elements.receiptList;
+            listEl.innerHTML = '';
+
+            if (receipts.length === 0) {
+                listEl.innerHTML = '<p class="p-4 text-center text-gray-500">No saved receipts for the selected period.</p>';
+                return;
+            }
+
+            const header = document.createElement('div');
+            header.className = 'grid grid-cols-4 gap-4 p-2 font-bold tree-view-header';
+            header.innerHTML = `<span>Date</span><span>Table</span><span class="text-right">Total</span><span></span>`;
+            listEl.appendChild(header);
+
+            receipts.forEach(r => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-4 gap-4 p-2 border-t items-center';
+                row.innerHTML = `
+                    <span>${new Date(r.timestamp).toLocaleString()}</span>
+                    <span>${r.tableName} ${r.nickname ? `(${r.nickname})` : ''}</span>
+                    <span class="text-right font-semibold">$${r.total.toFixed(2)}</span>
+                    <span class="text-right">
+                        <button data-id="${r.id}" class="view-receipt-btn px-3 py-1 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">View</button>
+                    </span>
+                `;
+                listEl.appendChild(row);
+            });
+        },
+
+        populateFilters() {
+            const receipts = App.db.get('receipts');
+            const years = [...new Set(receipts.map(r => new Date(r.timestamp).getFullYear()))].sort((a,b) => b-a);
+            const yearSelect = App.elements.receiptYearFilter;
+            const currentYear = yearSelect.value;
+            yearSelect.innerHTML = '<option value="all">All Years</option>';
+            years.forEach(y => {
+                yearSelect.innerHTML += `<option value="${y}" ${y == currentYear ? 'selected' : ''}>${y}</option>`;
+            });
+
+            const monthSelect = App.elements.receiptMonthFilter;
+            const currentMonth = monthSelect.value;
+            monthSelect.innerHTML = '<option value="all">All Months</option>';
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            monthNames.forEach((name, index) => {
+                 monthSelect.innerHTML += `<option value="${index}" ${index == currentMonth ? 'selected' : ''}>${name}</option>`;
+            });
+        },
+
+        handleFilterChange() {
+            const year = parseInt(App.elements.receiptYearFilter.value);
+            const month = parseInt(App.elements.receiptMonthFilter.value);
+            const daySelect = App.elements.receiptDayFilter;
+            daySelect.innerHTML = '<option value="all">All Days</option>';
+
+            if (!isNaN(year) && !isNaN(month)) {
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                for (let i = 1; i <= daysInMonth; i++) {
+                    daySelect.innerHTML += `<option value="${i}">${i}</option>`;
+                }
+            }
+            this.render();
+        },
+
+        resetFilters() {
+            App.elements.receiptYearFilter.value = 'all';
+            App.elements.receiptMonthFilter.value = 'all';
+            App.elements.receiptDayFilter.innerHTML = '<option value="all">All Days</option>';
+            this.render();
+        },
+
+        showDetailModal(receiptId) {
+            const receipt = App.db.get('receipts').find(r => r.id === receiptId);
+            if (!receipt) return;
+
+            App.elements.receiptModalTitle.textContent = `Receipt for ${receipt.tableName}`;
+            const contentEl = App.elements.receiptModalContent;
+            
+            let itemsHtml = receipt.items.map(item => `
+                <div class="grid grid-cols-3 gap-2">
+                    <span>${item.name}</span>
+                    <span class="text-center">x ${item.quantity}</span>
+                    <span class="text-right">$${(item.quantity * item.price).toFixed(2)}</span>
+                </div>
+            `).join('');
+
+            contentEl.innerHTML = `
+                <div class="space-y-2">
+                    <p><strong>Date:</strong> ${new Date(receipt.timestamp).toLocaleString()}</p>
+                    ${receipt.nickname ? `<p><strong>For:</strong> ${receipt.nickname}</p>` : ''}
+                    <p><strong>Cashier:</strong> ${receipt.cashier}</p>
+                    <hr class="my-2">
+                    <div class="font-semibold grid grid-cols-3 gap-2">
+                        <span>Item</span>
+                        <span class="text-center">Qty</span>
+                        <span class="text-right">Subtotal</span>
+                    </div>
+                    ${itemsHtml}
+                    <hr class="my-2">
+                    <div class="font-bold text-lg grid grid-cols-3 gap-2">
+                        <span class="col-span-2">TOTAL</span>
+                        <span class="text-right">$${receipt.total.toFixed(2)}</span>
+                    </div>
+                </div>
+            `;
+            
+            App.elements.receiptDetailModal.classList.remove('hidden');
+        },
+
+        closeDetailModal() {
+            App.elements.receiptDetailModal.classList.add('hidden');
+        },
+
+        printReceipt() {
+            const content = App.elements.receiptModalContent.innerHTML;
+            const title = App.elements.receiptModalTitle.textContent;
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Print Receipt</title>');
+            printWindow.document.write('<style>body {font-family: sans-serif;} .grid {display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;} .text-center {text-align: center;} .text-right {text-align: right;} hr {margin: 8px 0;} .font-bold {font-weight: bold;} .font-semibold {font-weight: 600;}</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(`<h2>${title}</h2>`);
+            printWindow.document.write(content);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
+    },
+
+    reports: {
+        activePeriod: 'total',
+
+        setPeriod(period) {
+            this.activePeriod = period;
+            App.elements.reportFilters.querySelectorAll('.report-filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.period === period) {
+                    btn.classList.add('active');
+                }
+            });
+            this.render();
+        },
+
+        render() {
+            const allTransactions = App.db.get('transactions');
+            const now = new Date();
+
+            const filteredTransactions = allTransactions.filter(t => {
+                const tDate = new Date(t.timestamp);
+                if (this.activePeriod === 'daily') {
+                    return tDate.getDate() === now.getDate() &&
+                           tDate.getMonth() === now.getMonth() &&
+                           tDate.getFullYear() === now.getFullYear();
+                }
+                if (this.activePeriod === 'monthly') {
+                    return tDate.getMonth() === now.getMonth() &&
+                           tDate.getFullYear() === now.getFullYear();
+                }
+                // 'total' case
+                return true;
+            });
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            filteredTransactions.forEach(t => {
+                if (t.type === 'Income') {
+                    totalIncome += t.amount;
+                } else {
+                    totalExpense += t.amount;
+                }
+            });
+
+            const netProfit = totalIncome - totalExpense;
+
+            App.elements.reportTotalIncome.textContent = `$${totalIncome.toFixed(2)}`;
+            App.elements.reportTotalExpense.textContent = `$${totalExpense.toFixed(2)}`;
+            App.elements.reportNetProfit.textContent = `$${netProfit.toFixed(2)}`;
+            
+            App.elements.reportNetProfit.classList.remove('text-green-600', 'text-red-600', 'text-indigo-600');
+            if (netProfit > 0) {
+                App.elements.reportNetProfit.classList.add('text-green-600');
+            } else if (netProfit < 0) {
+                App.elements.reportNetProfit.classList.add('text-red-600');
+            } else {
+                App.elements.reportNetProfit.classList.add('text-indigo-600');
+            }
+        }
+    },
+
+    pos: {
+        // Point of Sale logic for the order modal
+        currentTableId: null,
+
+        openOrderModal(tableId) {
+            this.currentTableId = tableId;
+            const table = App.db.get('tables').find(t => t.id === tableId);
+            App.elements.modalTableName.textContent = `Order for ${table.table_name}`;
+            App.elements.modalNickname.value = table.nickname || '';
+            App.elements.tableOrderModal.classList.remove('hidden');
+            this.loadBaseItems();
+            this.refreshOrderList();
+        },
+
+        closeOrderModal() {
+            // Save nickname before closing
+            const nickname = App.elements.modalNickname.value.trim();
+            const tables = App.db.get('tables');
+            const table = tables.find(t => t.id === this.currentTableId);
+            if (table) {
+                table.nickname = nickname;
+                App.db.set('tables', tables);
+            }
+            
+            App.elements.tableOrderModal.classList.add('hidden');
+            this.currentTableId = null;
+            App.tables.render(); // Refresh tables to show new nickname
+        },
+
+        loadBaseItems() {
+            const items = App.db.get('base_items');
+            const combo = App.elements.modalBaseItemCombo;
+            combo.innerHTML = '<option value="">Select Item...</option>';
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name;
+                combo.appendChild(option);
+            });
+            this.updateVariationCombo();
+        },
+
+        updateVariationCombo() {
+            const baseItemId = parseInt(App.elements.modalBaseItemCombo.value);
+            const combo = App.elements.modalVariationCombo;
+            combo.innerHTML = '<option value="">Select Size...</option>';
+            if (!baseItemId) return;
+
+            const variations = App.db.get('inventory_items').filter(v => v.base_item_id === baseItemId && v.quantity > 0);
+            variations.forEach(v => {
+                const option = document.createElement('option');
+                option.value = v.id;
+                option.textContent = `${v.variation_name} ($${v.unit_price.toFixed(2)})`;
+                combo.appendChild(option);
+            });
+        },
+        
+        addItemToOrder() {
+            const variationId = parseInt(App.elements.modalVariationCombo.value);
+            const qtyToAdd = parseInt(App.elements.modalQtyEntry.value);
+
+            if (!variationId || isNaN(qtyToAdd) || qtyToAdd <= 0) {
+                App.showAlert('Please select a valid item and quantity.');
+                return;
+            }
+
+            const variation = App.db.get('inventory_items').find(v => v.id === variationId);
+            const baseItem = App.db.get('base_items').find(b => b.id === variation.base_item_id);
+            const orders = App.db.get('orders');
+            const existingOrder = orders.find(o => o.table_id === this.currentTableId && o.inventory_item_id === variationId);
+
+            const currentOrderedQty = existingOrder ? existingOrder.quantity : 0;
+            
+            if ((currentOrderedQty + qtyToAdd) > variation.quantity) {
+                App.showAlert(`Not enough stock for ${baseItem.name} (${variation.variation_name}). Only ${variation.quantity - currentOrderedQty} more available.`);
+                return;
+            }
+
+            if (existingOrder) {
+                existingOrder.quantity += qtyToAdd;
+            } else {
+                orders.push({
+                    id: App.db.getNextId('orders'),
+                    table_id: this.currentTableId,
+                    inventory_item_id: variationId,
+                    item_display_name: `${baseItem.name} (${variation.variation_name})`,
+                    quantity: qtyToAdd,
+                    price_per_item: variation.unit_price
+                });
+            }
+            App.db.set('orders', orders);
+            
+            // Mark table as occupied
+            const tables = App.db.get('tables');
+            const table = tables.find(t => t.id === this.currentTableId);
+            if (table.status === 'Available') {
+                table.status = 'Occupied';
+                table.start_time = new Date().toISOString();
+                App.db.set('tables', tables);
+                App.tables.render();
+            }
+
+            this.refreshOrderList();
+        },
+
+        decreaseItemQuantity(orderId) {
+            let orders = App.db.get('orders');
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                order.quantity -= 1;
+                if (order.quantity <= 0) {
+                    orders = orders.filter(o => o.id !== orderId);
+                }
+                App.db.set('orders', orders);
+                this.refreshOrderList();
+            }
+        },
+
+        increaseItemQuantity(orderId) {
+            const orders = App.db.get('orders');
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                const variation = App.db.get('inventory_items').find(v => v.id === order.inventory_item_id);
+                if (order.quantity + 1 > variation.quantity) {
+                    const baseItem = App.db.get('base_items').find(b => b.id === variation.base_item_id);
+                    App.showAlert(`Not enough stock for ${baseItem.name} (${variation.variation_name}).`);
+                    return;
+                }
+                order.quantity += 1;
+                App.db.set('orders', orders);
+                this.refreshOrderList();
+            }
+        },
+
+        refreshOrderList() {
+            const listEl = App.elements.modalOrderList;
+            listEl.innerHTML = '';
+            const orders = App.db.get('orders').filter(o => o.table_id === this.currentTableId);
+            
+            const table = App.db.get('tables').find(t => t.id === this.currentTableId);
+            App.elements.modalStartTime.textContent = table.start_time ? new Date(table.start_time).toLocaleTimeString() : 'N/A';
+
+            if (orders.length === 0) {
+                listEl.innerHTML = '<p class="p-4 text-center text-gray-500">No items in this order yet.</p>';
+                App.elements.modalTotalBill.textContent = '$0.00';
+                return;
+            }
+            
+            const header = document.createElement('div');
+            header.className = 'grid grid-cols-5 gap-4 p-2 font-bold tree-view-header';
+            header.innerHTML = `
+                <span class="col-span-2">Item</span>
+                <span class="text-center">Qty</span>
+                <span class="text-right">Price</span>
+                <span class="text-right">Total</span>
+            `;
+            listEl.appendChild(header);
+
+            let totalBill = 0;
+            orders.forEach(order => {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-5 gap-4 p-2 border-t items-center';
+                row.dataset.id = order.id;
+                const total = order.quantity * order.price_per_item;
+                totalBill += total;
+                row.innerHTML = `
+                    <span class="col-span-2">${order.item_display_name}</span>
+                    <span class="text-center flex items-center justify-center gap-2">
+                        <button data-id="${order.id}" class="qty-decrease bg-red-500 text-white rounded-full w-6 h-6">-</button>
+                        <span>${order.quantity}</span>
+                        <button data-id="${order.id}" class="qty-increase bg-green-500 text-white rounded-full w-6 h-6">+</button>
+                    </span>
+                    <span class="text-right">$${order.price_per_item.toFixed(2)}</span>
+                    <span class="text-right font-semibold">$${total.toFixed(2)}</span>
+                `;
+                listEl.appendChild(row);
+            });
+            App.elements.modalTotalBill.textContent = `$${totalBill.toFixed(2)}`;
+        },
+        
+        finalizeBill() {
+            const orders = App.db.get('orders').filter(o => o.table_id === this.currentTableId);
+            if (orders.length === 0) {
+                App.showAlert('There are no items to bill.');
+                return;
+            }
+            
+            const totalBill = orders.reduce((sum, o) => sum + (o.quantity * o.price_per_item), 0);
+            
+            App.showConfirm(`The total bill is $${totalBill.toFixed(2)}. Proceed with payment?`, () => {
+                const table = App.db.get('tables').find(t => t.id === this.currentTableId);
+                const timestamp = new Date().toISOString();
+
+                // 1. Save the receipt
+                const receipts = App.db.get('receipts');
+                const newReceipt = {
+                    id: App.db.getNextId('receipts'),
+                    tableId: this.currentTableId,
+                    tableName: table.table_name,
+                    nickname: table.nickname, // Save the nickname
+                    cashier: App.currentUser.username, // Save the cashier's name
+                    timestamp: timestamp,
+                    total: totalBill,
+                    items: orders.map(o => ({
+                        name: o.item_display_name,
+                        quantity: o.quantity,
+                        price: o.price_per_item
+                    }))
+                };
+                receipts.push(newReceipt);
+                App.db.set('receipts', receipts);
+
+                // 2. Add to transactions
+                const transactions = App.db.get('transactions');
+                transactions.push({
+                    id: App.db.getNextId('transactions'),
+                    type: 'Income',
+                    description: `Income from ${table.table_name} (Receipt #${newReceipt.id})`,
+                    amount: totalBill,
+                    timestamp: timestamp,
+                    user: App.currentUser.username
+                });
+                App.db.set('transactions', transactions);
+
+                // 3. Update inventory
+                const inventory = App.db.get('inventory_items');
+                orders.forEach(order => {
+                    const item = inventory.find(i => i.id === order.inventory_item_id);
+                    if (item) {
+                        item.quantity -= order.quantity;
+                    }
+                });
+                App.db.set('inventory_items', inventory);
+
+                // 4. Clear orders for this table
+                let allOrders = App.db.get('orders');
+                allOrders = allOrders.filter(o => o.table_id !== this.currentTableId);
+                App.db.set('orders', allOrders);
+
+                // 5. Reset table
+                const tables = App.db.get('tables');
+                const currentTable = tables.find(t => t.id === this.currentTableId);
+                currentTable.status = 'Available';
+                currentTable.start_time = null;
+                currentTable.nickname = ''; // Reset the nickname
+                App.db.set('tables', tables);
+
+                App.showAlert('Bill finalized successfully! Receipt saved.');
+                this.closeOrderModal();
+            });
+        },
+
+        openMergeModal() {
+            const occupiedTables = App.db.get('tables').filter(t => t.status === 'Occupied');
+            if (occupiedTables.length < 2) {
+                App.showAlert('You need at least two occupied tables to perform a merge.');
+                return;
+            }
+            this.populateMergeFromSelect(occupiedTables);
+            this.populateMergeToSelect();
+            App.elements.mergeTablesModal.classList.remove('hidden');
+        },
+
+        closeMergeModal() {
+            App.elements.mergeTablesModal.classList.add('hidden');
+        },
+
+        populateMergeFromSelect(tables) {
+            const select = App.elements.mergeFromSelect;
+            select.innerHTML = '<option value="">Select source table...</option>';
+            tables.forEach(table => {
+                select.innerHTML += `<option value="${table.id}">${table.table_name} ${table.nickname ? `(${table.nickname})` : ''}</option>`;
+            });
+        },
+
+        populateMergeToSelect() {
+            const fromId = parseInt(App.elements.mergeFromSelect.value);
+            const tables = App.db.get('tables').filter(t => t.status === 'Occupied' && t.id !== fromId);
+            const select = App.elements.mergeToSelect;
+            select.innerHTML = '<option value="">Select destination table...</option>';
+            tables.forEach(table => {
+                select.innerHTML += `<option value="${table.id}">${table.table_name} ${table.nickname ? `(${table.nickname})` : ''}</option>`;
+            });
+        },
+
+        mergeTables() {
+            const fromTableId = parseInt(App.elements.mergeFromSelect.value);
+            const toTableId = parseInt(App.elements.mergeToSelect.value);
+
+            if (!fromTableId || !toTableId || fromTableId === toTableId) {
+                App.showAlert('Please select two different occupied tables to merge.');
+                return;
+            }
+
+            App.showConfirm('Are you sure you want to merge these tables? This action cannot be undone.', () => {
+                const allOrders = App.db.get('orders');
+                const fromOrders = allOrders.filter(o => o.table_id === fromTableId);
+                
+                fromOrders.forEach(fromOrder => {
+                    const toOrder = allOrders.find(o => o.table_id === toTableId && o.inventory_item_id === fromOrder.inventory_item_id);
+                    if (toOrder) {
+                        toOrder.quantity += fromOrder.quantity;
+                    } else {
+                        fromOrder.table_id = toTableId;
+                    }
+                });
+                
+                const remainingOrders = allOrders.filter(o => o.table_id !== fromTableId || !fromOrders.some(fo => fo.id === o.id));
+                App.db.set('orders', remainingOrders);
+
+                const tables = App.db.get('tables');
+                const fromTable = tables.find(t => t.id === fromTableId);
+                fromTable.status = 'Available';
+                fromTable.start_time = null;
+                fromTable.nickname = '';
+                App.db.set('tables', tables);
+
+                App.showAlert('Tables merged successfully!');
+                this.closeMergeModal();
+                App.tables.render();
+            });
+        }
+    },
+
+    users: {
+        render() {
+            const users = App.db.get('users');
+            const listEl = App.elements.userList;
+            listEl.innerHTML = '';
+
+            const header = document.createElement('div');
+            header.className = 'grid grid-cols-2 gap-4 p-2 font-bold tree-view-header';
+            header.innerHTML = `<span>Username</span><span>Role</span>`;
+            listEl.appendChild(header);
+
+            users.forEach(user => {
+                const row = document.createElement('div');
+                row.className = `grid grid-cols-2 gap-4 p-3 border-b cursor-pointer tree-view-row ${App.selectedUserId === user.id ? 'selected' : ''}`;
+                row.dataset.id = user.id;
+                row.innerHTML = `
+                    <span>${user.username}</span>
+                    <span class="capitalize">${user.role}</span>
+                `;
+                listEl.appendChild(row);
+            });
+        },
+
+        selectUser(e) {
+            const row = e.target.closest('.tree-view-row');
+            if (row) {
+                App.selectedUserId = parseInt(row.dataset.id);
+                const user = App.db.get('users').find(u => u.id === App.selectedUserId);
+                if (user) {
+                    App.elements.userFormTitle.textContent = 'Edit User';
+                    App.elements.userUsernameInput.value = user.username;
+                    App.elements.userRoleSelect.value = user.role;
+                    App.elements.userPasswordInput.placeholder = 'Leave blank to keep current password';
+                    App.elements.userUsernameInput.disabled = true; // Don't allow username change
+                }
+                this.render();
+            }
+        },
+        
+        clearForm() {
+            App.selectedUserId = null;
+            App.elements.userFormTitle.textContent = 'Add New User';
+            App.elements.userUsernameInput.value = '';
+            App.elements.userPasswordInput.value = '';
+            App.elements.userPasswordInput.placeholder = 'Enter new password';
+            App.elements.userRoleSelect.value = 'user';
+            App.elements.userUsernameInput.disabled = false;
+            this.render();
+        },
+
+        add() {
+            const username = App.elements.userUsernameInput.value.trim();
+            const password = App.elements.userPasswordInput.value.trim();
+            const role = App.elements.userRoleSelect.value;
+
+            if (!username || !password) {
+                App.showAlert('Username and password are required for a new user.');
+                return;
+            }
+
+            const users = App.db.get('users');
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                App.showAlert('This username already exists.');
+                return;
+            }
+
+            users.push({
+                id: App.db.getNextId('users'),
+                username,
+                password,
+                role
+            });
+            App.db.set('users', users);
+            this.clearForm();
+        },
+
+        update() {
+            if (App.selectedUserId === null) {
+                App.showAlert('Please select a user to update.');
+                return;
+            }
+
+            const users = App.db.get('users');
+            const user = users.find(u => u.id === App.selectedUserId);
+            if (!user) return;
+
+            const newPassword = App.elements.userPasswordInput.value.trim();
+            if (newPassword) {
+                user.password = newPassword;
+            }
+            user.role = App.elements.userRoleSelect.value;
+            
+            App.db.set('users', users);
+            App.showAlert('User updated successfully.');
+            this.clearForm();
+        },
+
+        delete() {
+            if (App.selectedUserId === null) {
+                App.showAlert('Please select a user to delete.');
+                return;
+            }
+
+            if (App.selectedUserId === App.currentUser.id) {
+                App.showAlert("You cannot delete your own account.");
+                return;
+            }
+
+            App.showConfirm('Are you sure you want to delete this user?', () => {
+                let users = App.db.get('users');
+                users = users.filter(u => u.id !== App.selectedUserId);
+                App.db.set('users', users);
+                this.clearForm();
+            });
+        }
+    }
+};
+
+// Start the application
+document.addEventListener('DOMContentLoaded', () => App.init());
+
+</script>
+</body>
+</html>
